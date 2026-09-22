@@ -1,0 +1,71 @@
+<script lang="ts">
+  import {
+    Braces,
+    Binary,
+    Hash,
+    KeyRound,
+    Fingerprint,
+    Shuffle,
+    AlignLeft,
+    FileCode2,
+    ArrowLeftRight,
+    Link,
+    Code,
+    ShieldCheck,
+    Clock,
+    Palette,
+    Regex,
+    GitCompareArrows,
+    QrCode,
+    CalendarClock,
+    CaseSensitive,
+    Image,
+    IdCard,
+    Table,
+    Languages,
+    ChartNoAxesColumn,
+    ListFilter,
+    Link2,
+    Globe
+  } from '@lucide/svelte';
+  import type { ToolId } from '$lib/types';
+  let { id, size = 22 }: { id: ToolId; size?: number } = $props();
+  const icons = {
+    string: Shuffle,
+    hex: Binary,
+    number: Hash,
+    uuid: Fingerprint,
+    password: KeyRound,
+    ids: Fingerprint,
+    lorem: AlignLeft,
+    json: Braces,
+    yaml: FileCode2,
+    base64: Binary,
+    url: Link,
+    html: Code,
+    hash: ShieldCheck,
+    timestamp: Clock,
+    jwt: KeyRound,
+    color: Palette,
+    regex: Regex,
+    diff: GitCompareArrows,
+    qr: QrCode,
+    cron: CalendarClock,
+    case: CaseSensitive,
+    imageBase64: Image,
+    radix: Binary,
+    cnId: IdCard,
+    csv: Table,
+    unicode: Languages,
+    urlInspect: Link,
+    textStats: ChartNoAxesColumn,
+    lines: ListFilter,
+    slug: Link2,
+    base32: Binary,
+    httpStatus: Globe,
+    xml: FileCode2
+  };
+  const Icon = $derived(icons[id] || ArrowLeftRight);
+</script>
+
+<Icon {size} strokeWidth={1.75} />

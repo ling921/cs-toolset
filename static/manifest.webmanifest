@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "CS Toolset — Developer utilities",
+  "short_name": "CS Toolset",
+  "description": "Everyday developer tools. Private, fast, and available offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f7",
+  "theme_color": "#0d7668",
+  "icons": [
+    {
+      "src": "/cs-toolset-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
