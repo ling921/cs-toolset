@@ -13,12 +13,12 @@
   import ToolWorkbench from '$lib/components/ToolWorkbench.svelte';
   import { tools, toolUrl, categories } from '$lib/catalog';
   import { contentPages } from '$lib/content';
-  import { otherLocale } from '$lib/i18n';
+  import { otherLocale, toolPageCopy } from '$lib/i18n';
   import { visitTool } from '$lib/preferences.svelte';
   import type { PageData } from './$types';
   let { data }: { data: PageData } = $props();
   const locale = $derived(data.locale);
-  const zh = $derived(locale === 'zh-CN');
+  const copy = $derived(toolPageCopy[locale]);
   const tool = $derived(data.tool);
   const content = $derived(
     data.kind === 'about' || data.kind === 'privacy' ? contentPages[data.kind][locale] : null
@@ -39,8 +39,8 @@
     kind="tool"
     {tool}
   />
-  <nav class="breadcrumbs" aria-label={zh ? '面包屑导航' : 'Breadcrumb'}>
-    <a href="/{locale}/">{zh ? '首页' : 'Home'}</a><ChevronRight size={14} /><a href="/{locale}/"
+  <nav class="breadcrumbs" aria-label={copy.breadcrumbs}>
+    <a href="/{locale}/">{copy.home}</a><ChevronRight size={14} /><a href="/{locale}/"
       >{categories[tool.category][locale]}</a
     ><ChevronRight size={14} /><span aria-current="page">{tool.name[locale]}</span>
   </nav>
@@ -55,24 +55,24 @@
   <ToolWorkbench {tool} {locale} />
   <section class="guide">
     <div class="guide-main">
-      <p class="eyebrow"><BookOpen size={15} />{zh ? '使用说明' : 'GUIDE & CONTEXT'}</p>
-      <h2>{zh ? '关于这个工具' : 'About this tool'}</h2>
+      <p class="eyebrow"><BookOpen size={15} />{copy.guideEyebrow}</p>
+      <h2>{copy.aboutHeading}</h2>
       <p>{tool.intro[locale]}</p>
-      <h3>{zh ? '如何使用' : 'How to use it'}</h3>
+      <h3>{copy.howToHeading}</h3>
       <ol>
         {#each tool.instructions[locale] as step}<li>{step}</li>{/each}
       </ol>
       <div class="example">
         <Lightbulb size={19} />
         <div>
-          <strong>{zh ? '示例' : 'Example'}</strong>
+          <strong>{copy.example}</strong>
           <p>{tool.example[locale]}</p>
         </div>
       </div>
     </div>
     <aside>
-      <p class="eyebrow">{zh ? '接下来试试' : 'RELATED TOOLS'}</p>
-      <h3>{zh ? '相关工具' : 'Related tools'}</h3>
+      <p class="eyebrow">{copy.relatedEyebrow}</p>
+      <h3>{copy.relatedHeading}</h3>
       {#each tool.related as id}{@const related = tools.find((x) => x.id === id)}{#if related}<a
             class="related-card"
             href={toolUrl(related, locale)}
@@ -82,9 +82,7 @@
             ><ArrowUpRight size={15} /></a
           >{/if}{/each}
       <p class="privacy-promise">
-        <ShieldCheck size={17} />{zh
-          ? '所有输入只在此设备处理，不会上传。'
-          : 'Your inputs are processed on this device only.'}
+        <ShieldCheck size={17} />{copy.privacyPromise}
       </p>
     </aside>
   </section>
@@ -97,9 +95,9 @@
     alternatePath={alternate}
     kind={data.kind}
   />
-  <nav class="breadcrumbs" aria-label={zh ? '面包屑导航' : 'Breadcrumb'}>
-    <a href="/{locale}/">{zh ? '首页' : 'Home'}</a><ChevronRight size={14} /><span
-      aria-current="page">{content.title}</span
+  <nav class="breadcrumbs" aria-label={copy.breadcrumbs}>
+    <a href="/{locale}/">{copy.home}</a><ChevronRight size={14} /><span aria-current="page"
+      >{content.title}</span
     >
   </nav>
   <article class="editorial">
@@ -110,7 +108,7 @@
         <h2>{section.heading}</h2>
         {#each section.paragraphs as paragraph}<p>{paragraph}</p>{/each}
       </section>{/each}<a class="back-link" href="/{locale}/"
-      ><ArrowLeft size={17} />{zh ? '返回工具首页' : 'Back to all tools'}</a
+      ><ArrowLeft size={17} />{copy.backToTools}</a
     >
   </article>
 {/if}

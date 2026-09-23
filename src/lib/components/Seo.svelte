@@ -1,5 +1,6 @@
 <script lang="ts">
   import { seoData, type SeoProps } from '$lib/seo';
+  import { localeConfig } from '$lib/i18n';
   let props: SeoProps = $props();
   const meta = $derived(seoData(props));
   const jsonLd = $derived('<scr' + `ipt type="application/ld+json">${meta.graph}</scr` + 'ipt>');
@@ -17,7 +18,7 @@
   {/if}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="CS Toolset" />
-  <meta property="og:locale" content={props.locale === 'zh-CN' ? 'zh_CN' : 'en_US'} />
+  <meta property="og:locale" content={localeConfig[props.locale].ogLocale} />
   <meta property="og:title" content={meta.title} />
   <meta property="og:description" content={meta.description} />
   <meta property="og:url" content={meta.url} />
