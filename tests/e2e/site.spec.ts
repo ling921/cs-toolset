@@ -90,6 +90,29 @@ test('all catalog tools execute in the browser', async ({ page }) => {
   }
 });
 
+test('directional tools use matching examples, preserve user input, and transfer results', async ({
+  page
+}) => {
+  await page.goto('/en/convert/yaml/');
+  await expect(page.getByLabel('YAML input')).toHaveValue('name: Ada\nage: 36');
+  await page.getByLabel('Direction').selectOption('toYaml');
+  await expect(page).toHaveURL(/\?mode=toYaml$/);
+  await expect(page.getByLabel('JSON input')).toHaveValue('{"name":"Ada","age":36}');
+  await page.getByLabel('JSON input').fill('{"name":"Grace","age":37}');
+  await page.getByRole('button', { name: 'Run tool' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'YAML output' })).toBeVisible();
+  await page.getByRole('button', { name: 'Use output as input & switch' }).click();
+  await expect(page.getByLabel('Direction')).toHaveValue('toJson');
+  await expect(page.getByLabel('YAML input')).toHaveValue(/name: Grace/);
+
+  await page.goto('/en/security/jwt/');
+  await expect(page.getByLabel('Extra header JSON')).toHaveCount(0);
+  await page.getByLabel('Operation').selectOption('encode');
+  await expect(page.getByLabel('Input')).toHaveCount(0);
+  await expect(page.getByLabel('Extra header JSON')).toBeVisible();
+  await expect(page.getByLabel('Payload JSON')).toBeVisible();
+});
+
 test('search modal locks the page and keeps only its results scrollable', async ({ page }) => {
   await page.goto('/en/');
   await page.evaluate(() => window.scrollTo({ top: 700, behavior: 'instant' }));
