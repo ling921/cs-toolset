@@ -96,16 +96,9 @@ dialog:focus-visible {
   white-space: nowrap;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: #fff;
-  font: 700 15px/1 monospace;
-  letter-spacing: -0.13em;
-  padding-right: 3px;
+  flex: none;
 }
 .brand-dot {
   color: var(--accent);
@@ -298,8 +291,6 @@ dialog:focus-visible {
 .brand-mark.small {
   width: 20px;
   height: 20px;
-  border-radius: 5px;
-  font-size: 10px;
 }
 .footer-inner nav a {
   display: inline-flex;

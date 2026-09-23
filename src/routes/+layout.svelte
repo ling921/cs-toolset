@@ -235,7 +235,7 @@
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href={`/${locale}/`} aria-label={copy.brandHome}
-        ><span class="brand-mark" aria-hidden="true">&gt;_</span><span
+        ><img class="brand-mark" src="/cs-toolset-mark.svg" alt="" /><span
           >CS <span class="brand-dot">Toolset</span></span
         ></a
       >
@@ -327,7 +327,7 @@
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <span class="brand-mark small">&gt;_</span>
+        <img class="brand-mark small" src="/cs-toolset-mark.svg" alt="" />
         <span>CS Toolset</span><span class="footer-sep">·</span>
         <span>© {new Date().getFullYear()} Jing Ling</span>
       </div>
