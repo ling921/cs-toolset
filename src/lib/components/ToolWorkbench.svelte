@@ -518,10 +518,15 @@
                 <div class="password-wrap">
                   <input
                     id={`input-${tool.id}-${field.key}`}
+                    name={`tool-${tool.id}-${field.key}`}
                     type={revealPasswords[field.key] ? 'text' : 'password'}
                     bind:value={input[field.key]}
-                    autocomplete="off"
+                    autocomplete="new-password"
                     spellcheck="false"
+                    autocapitalize="off"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-lpignore="true"
                     aria-describedby={field.hint ? `hint-${tool.id}-${field.key}` : undefined}
                   />
                   <button
