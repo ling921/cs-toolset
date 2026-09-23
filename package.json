@@ -3,6 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ling921/cs-toolset.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ling921/cs-toolset/issues"
+  },
+  "homepage": "https://github.com/ling921/cs-toolset#readme",
   "engines": {
     "node": ">=24 <25"
   },
