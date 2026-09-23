@@ -113,6 +113,22 @@ test('directional tools use matching examples, preserve user input, and transfer
   await expect(page.getByLabel('Payload JSON')).toBeVisible();
 });
 
+test('tool secrets do not opt into credential autofill', async ({ page }) => {
+  await page.goto('/en/security/hash/');
+  await page.getByLabel('Operation').selectOption('hmac');
+  const hmacKey = page.getByLabel('HMAC secret key (UTF-8)');
+  await expect(hmacKey).toHaveAttribute('autocomplete', 'new-password');
+  await expect(hmacKey).toHaveAttribute('name', 'tool-hash-key');
+  await expect(hmacKey).toHaveAttribute('data-1p-ignore', 'true');
+  await expect(hmacKey).toHaveAttribute('data-lpignore', 'true');
+  await expect(hmacKey).toHaveAttribute('data-bwignore', 'true');
+
+  await page.goto('/en/security/jwt/');
+  const jwtSecret = page.getByLabel('HMAC secret (optional for verification)');
+  await expect(jwtSecret).toHaveAttribute('autocomplete', 'new-password');
+  await expect(jwtSecret).toHaveAttribute('name', 'tool-jwt-secret');
+});
+
 test('search modal locks the page and keeps only its results scrollable', async ({ page }) => {
   await page.goto('/en/');
   await page.evaluate(() => window.scrollTo({ top: 700, behavior: 'instant' }));
