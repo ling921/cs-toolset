@@ -1,5 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import {
     AlertTriangle,
     Columns2,
@@ -22,7 +25,7 @@
   import { codeLanguageFrom, ensureCodeLanguage, highlightCode } from '$lib/code';
   import CodeBlock from '$lib/components/CodeBlock.svelte';
   import { t } from '$lib/i18n';
-  import { getDefaults, runTool, toolFields } from '$lib/tools';
+  import { getDefaults, runTool, toolFields, toolModeUi } from '$lib/tools';
   import { fromBase64, toBase64, toolErrorMessage } from '$lib/tools/common';
   import type { Locale, ToolInput, ToolMeta, ToolResult } from '$lib/types';
 
@@ -120,11 +123,13 @@
     unsupportedImage: {
       en: 'Only PNG, JPEG, GIF and WebP are supported.',
       'zh-CN': '仅支持 PNG、JPEG、GIF 与 WebP。'
-    }
+    },
+    useOutput: { en: 'Use output as input & switch', 'zh-CN': '将结果用作输入并切换方向' },
+    switchDirection: { en: 'Switch direction', 'zh-CN': '切换方向' }
   } satisfies Record<string, Record<Locale, string>>;
 
   let { tool, locale }: { tool: ToolMeta; locale: Locale } = $props();
-  let input = $state<ToolInput>(untrack(() => getDefaults(tool.id)));
+  let input = $state<ToolInput>(untrack(() => initialInput(tool.id)));
   let result = $state<ToolResult | null>(null);
   let error = $state('');
   let status = $state('');
@@ -141,6 +146,8 @@
   type DiffPart = NonNullable<ToolResult['diff']>[number];
   type InlineDiffRow = { parts: DiffPart[]; kind: 'added' | 'removed' | 'context' };
   const fields = $derived(toolFields[tool.id]);
+  const modeUi = $derived(toolModeUi[tool.id]?.[input.mode]);
+  const visibleFields = $derived(fields.filter((field) => isFieldVisible(field)));
   const message = (key: keyof typeof copyMessages) => t(locale, copyMessages[key]);
   const lineCount = $derived(result ? result.text.split('\n').length : 0);
   const charCount = $derived(result ? Array.from(result.text).length : 0);
@@ -189,7 +196,8 @@
 
   $effect(() => {
     const id = tool.id;
-    input = getDefaults(id);
+    input = untrack(() => initialInput(id));
+    if (browser) untrack(applyModeFromUrl);
     result = null;
     error = '';
     status = '';
@@ -250,13 +258,80 @@
 
   function reset() {
     operation += 1;
-    input = getDefaults(tool.id);
+    input = untrack(() => initialInput(tool.id));
     result = null;
     error = '';
     status = message('defaultsRestored');
     busy = false;
     copied = false;
     revealPasswords = {};
+  }
+
+  function isFieldVisible(field: (typeof fields)[number]) {
+    return Object.entries(field.visibleWhen ?? {}).every(([key, expected]) => {
+      const values = Array.isArray(expected) ? expected : [expected];
+      return values.includes(input[key]);
+    });
+  }
+
+  function fieldLabel(field: (typeof fields)[number]) {
+    return field.key === 'input' && modeUi ? modeUi.sourceLabel[locale] : field.label[locale];
+  }
+
+  function updateField(key: string, value: string) {
+    const previous = key === 'mode' ? toolModeUi[tool.id]?.[input.mode] : undefined;
+    input[key] = value;
+    if (key !== 'mode') return;
+    const next = toolModeUi[tool.id]?.[value];
+    if (next?.example && (!input.input || input.input === previous?.example))
+      input.input = next.example;
+    if (next) {
+      const query = [
+        ...[...page.url.searchParams].filter(([name]) => name !== 'mode'),
+        ['mode', value]
+      ]
+        .map(([name, entry]) => `${encodeURIComponent(name)}=${encodeURIComponent(entry)}`)
+        .join('&');
+      void goto(`${page.url.pathname}?${query}`, {
+        keepFocus: true,
+        noScroll: true,
+        replaceState: true
+      });
+    }
+    result = null;
+    error = '';
+    status = '';
+  }
+
+  function initialInput(id: ToolMeta['id']) {
+    return getDefaults(id);
+  }
+
+  function applyModeFromUrl() {
+    const selected = page.url.searchParams.get('mode');
+    const presentation = selected ? toolModeUi[tool.id]?.[selected] : undefined;
+    if (!selected || !presentation) return;
+
+    input.mode = selected;
+    if (presentation.example) input.input = presentation.example;
+  }
+
+  function useOutputAsInput() {
+    if (!result || !modeUi?.reverse) return;
+    input.input = result.text;
+    updateField('mode', modeUi.reverse);
+    input.input = result.text;
+    result = null;
+    status = message('switchDirection');
+  }
+
+  function swapRadix() {
+    const source = input.from;
+    input.from = input.to;
+    input.to = source;
+    if (result) input.input = result.text;
+    result = null;
+    status = message('switchDirection');
   }
 
   async function copyResult() {
@@ -302,7 +377,7 @@
     }
     const encoded = toBase64(new Uint8Array(await file.arrayBuffer()));
     input.input = `data:${file.type};base64,${encoded}`;
-    input.mode = 'encode';
+    updateField('mode', 'encode');
     error = '';
   }
 
@@ -383,11 +458,15 @@
       </div>
       <span class="step-label">01</span>
     </div>
+    {#if modeUi}<p class="mode-summary" aria-live="polite">
+        {modeUi.sourceLabel[locale]} <span aria-hidden="true">→</span>
+        {modeUi.targetLabel[locale]}
+      </p>{/if}
 
     <fieldset disabled={busy}>
       <legend class="sr-only">{message('configureInput')}</legend>
       <div class="fields">
-        {#each fields as field (field.key)}
+        {#each visibleFields as field (field.key)}
           {#if field.type === 'checkbox'}
             <div class="field checkbox-field">
               <label class="checkbox-label" for={`input-${tool.id}-${field.key}`}>
@@ -409,7 +488,7 @@
           {:else}
             <div class="field" class:wide={field.type === 'textarea'}>
               <label class="field-label" for={`input-${tool.id}-${field.key}`}
-                >{field.label[locale]}</label
+                >{fieldLabel(field)}</label
               >
               {#if field.type === 'textarea'}
                 <textarea
@@ -425,7 +504,8 @@
                 <div class="select-control">
                   <select
                     id={`input-${tool.id}-${field.key}`}
-                    bind:value={input[field.key]}
+                    value={input[field.key]}
+                    onchange={(event) => updateField(field.key, event.currentTarget.value)}
                     aria-describedby={field.hint ? `hint-${tool.id}-${field.key}` : undefined}
                   >
                     {#each field.options ?? [] as option (option.value)}<option value={option.value}
@@ -501,7 +581,7 @@
       </div>
     </fieldset>
 
-    {#if tool.id === 'imageBase64'}<div class="upload-field">
+    {#if tool.id === 'imageBase64' && input.mode === 'encode'}<div class="upload-field">
         <label for="image-upload">{message('chooseImage')}</label>
         <input
           id="image-upload"
@@ -538,6 +618,12 @@
       <button class="button secondary" type="button" onclick={reset}
         ><RotateCcw size={16} />{message('reset')}</button
       >
+      {#if tool.id === 'radix'}<button
+          class="button secondary"
+          type="button"
+          onclick={swapRadix}
+          disabled={!result}><RotateCcw size={16} />{message('switchDirection')}</button
+        >{/if}
     </div>
     {#if error}<div class="error-box" role="alert">
         <AlertTriangle size={18} />
@@ -552,7 +638,7 @@
     <div class="panel-heading">
       <div class="heading-label">
         <Terminal size={18} strokeWidth={1.8} />
-        <h2 id="result-heading">{message('result')}</h2>
+        <h2 id="result-heading">{modeUi ? modeUi.targetLabel[locale] : message('result')}</h2>
       </div>
       <span class="step-label">02</span>
     </div>
@@ -759,6 +845,9 @@
           onclick={copyResult}
           >{message(copied ? 'copiedButton' : 'copyAll')}<Copy size={13} /></button
         >
+        {#if modeUi?.reverse}<button type="button" class="text-button" onclick={useOutputAsInput}
+            >{message('useOutput')}<RotateCcw size={13} /></button
+          >{/if}
       </div>
     {:else}
       <div class="empty-result">
@@ -866,6 +955,18 @@
     gap: 16px;
     padding: 19px 23px;
     border-bottom: 1px solid var(--border);
+  }
+  .mode-summary {
+    margin: 0;
+    padding: 10px 23px;
+    border-bottom: 1px solid var(--border);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .mode-summary span {
+    padding: 0 6px;
   }
   .heading-label {
     display: flex;

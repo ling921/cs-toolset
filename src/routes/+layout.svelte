@@ -23,7 +23,15 @@
     applyTheme
   } from '$lib/preferences.svelte';
   import { siteConfig } from '$lib/site';
-  import { defaultLocale, isLocale, localeConfig, localeFromPath, locales } from '$lib/i18n';
+  import {
+    defaultLocale,
+    isLocale,
+    layoutCopy,
+    localeConfig,
+    localeFromPath,
+    locales,
+    t
+  } from '$lib/i18n';
   import type { Locale } from '$lib/types';
   import './app.css';
 
@@ -50,9 +58,10 @@
   let updateTimer: ReturnType<typeof setTimeout> | undefined;
   let reloading = false;
   const matches = $derived(searchTools(tools, query, locale).slice(0, 12));
-  const zh = $derived(locale === 'zh-CN');
+  const copy = $derived(t(locale, layoutCopy));
   const currentPath = $derived(page.url.pathname.replace(/^\/[^/]+\//, '').replace(/\/$/, ''));
   const shortcutLabel = $derived(isApplePlatform ? '⌘ K' : 'Ctrl K');
+  const updateState = $derived(updateFailed ? 'failed' : updateApplying ? 'applying' : 'ready');
 
   function openPalette() {
     if (palette?.open) return;
@@ -225,26 +234,26 @@
 <div class="site-shell">
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href={`/${locale}/`} aria-label={zh ? 'CS Toolset 首页' : 'CS Toolset home'}
-        ><span class="brand-mark" aria-hidden="true">&gt;_</span><span
+      <a class="brand" href={`/${locale}/`} aria-label={copy.brandHome}
+        ><img class="brand-mark" src="/cs-toolset-mark.svg" alt="" /><span
           >CS <span class="brand-dot">Toolset</span></span
         ></a
       >
-      <nav class="header-actions" aria-label={zh ? '网站导航' : 'Site navigation'}>
+      <nav class="header-actions" aria-label={copy.siteNavigation}>
         <button
           class="search-shortcut"
           onclick={openPalette}
           aria-keyshortcuts={isApplePlatform ? 'Meta+K' : 'Control+K'}
-          aria-label={zh ? '搜索全部工具' : 'Search all tools'}
+          aria-label={copy.searchAllTools}
         >
           <Search size={17} />
-          <span>{zh ? '搜索工具' : 'Search tools'}</span>
+          <span>{copy.searchTools}</span>
           <kbd>{shortcutLabel}</kbd></button
         >
         <button
           class="icon-control mobile-search"
           onclick={openPalette}
-          aria-label={zh ? '搜索全部工具' : 'Search all tools'}
+          aria-label={copy.searchAllTools}
         >
           <Search size={20} />
         </button>
@@ -252,8 +261,8 @@
           <button
             class="language-select"
             type="button"
-            title={zh ? '切换语言' : 'Change language'}
-            aria-label={zh ? '选择语言' : 'Choose language'}
+            title={copy.changeLanguage}
+            aria-label={copy.chooseLanguage}
             aria-haspopup="menu"
             aria-expanded={languageMenuOpen}
             onclick={() => (languageMenuOpen = !languageMenuOpen)}
@@ -280,14 +289,14 @@
           class:theme-light={preferences.theme === 'light'}
           class:theme-system={preferences.theme === 'system'}
           class:theme-dark={preferences.theme === 'dark'}
-          aria-label={zh ? '主题' : 'Theme'}
+          aria-label={copy.theme}
         >
           <span class="theme-indicator" aria-hidden="true"></span>
           <button
             class:chosen={preferences.theme === 'light'}
             onclick={() => setTheme('light')}
-            aria-label={zh ? '浅色主题' : 'Light theme'}
-            title={zh ? '浅色主题' : 'Light theme'}
+            aria-label={copy.lightTheme}
+            title={copy.lightTheme}
             aria-pressed={preferences.theme === 'light'}
           >
             <Sun size={17} />
@@ -295,8 +304,8 @@
           <button
             class:chosen={preferences.theme === 'system'}
             onclick={() => setTheme('system')}
-            aria-label={zh ? '系统主题' : 'System theme'}
-            title={zh ? '系统主题' : 'System theme'}
+            aria-label={copy.systemTheme}
+            title={copy.systemTheme}
             aria-pressed={preferences.theme === 'system'}
           >
             <Monitor size={17} />
@@ -304,8 +313,8 @@
           <button
             class:chosen={preferences.theme === 'dark'}
             onclick={() => setTheme('dark')}
-            aria-label={zh ? '深色主题' : 'Dark theme'}
-            title={zh ? '深色主题' : 'Dark theme'}
+            aria-label={copy.darkTheme}
+            title={copy.darkTheme}
             aria-pressed={preferences.theme === 'dark'}
           >
             <Moon size={17} />
@@ -318,16 +327,16 @@
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <span class="brand-mark small">&gt;_</span>
+        <img class="brand-mark small" src="/cs-toolset-mark.svg" alt="" />
         <span>CS Toolset</span><span class="footer-sep">·</span>
         <span>© {new Date().getFullYear()} Jing Ling</span>
       </div>
-      <nav aria-label={zh ? '页脚' : 'Footer'}>
+      <nav aria-label={copy.footer}>
         <a href="https://github.com/ling921/cs-toolset" target="_blank" rel="noopener noreferrer">
           GitHub <ArrowUpRight size={12} />
         </a>
-        <a href="/{locale}/about/">{zh ? '关于' : 'About'}</a>
-        <a href="/{locale}/privacy/"> {zh ? '隐私' : 'Privacy'} </a>
+        <a href="/{locale}/about/">{copy.about}</a>
+        <a href="/{locale}/privacy/"> {copy.privacy} </a>
         <span class="version">v{siteConfig.version} · {siteConfig.commit}</span>
       </nav>
     </div>
@@ -335,35 +344,12 @@
 </div>
 
 {#if offline}<div class="floating-status" role="status">
-    <WifiOff size={17} />{zh
-      ? '当前离线，工具仍可使用。'
-      : 'You’re offline. Your tools still work.'}
+    <WifiOff size={17} />{copy.offline}
   </div>{/if}
 {#if updateWaiting}<div class="update-toast" role="status">
-    <RefreshCw size={18} /><span
-      >{zh
-        ? updateFailed
-          ? '更新未完成，可重新加载本页。'
-          : updateApplying
-            ? '正在切换到新版本…'
-            : '有新版本可用。完成当前操作后更新。'
-        : updateFailed
-          ? 'The update did not finish. Reload this page to try again.'
-          : updateApplying
-            ? 'Switching to the new version…'
-            : 'A new version is ready. Update when you’re done.'}</span
+    <RefreshCw size={18} /><span>{copy.updateStatus[updateState]}</span
     ><button onclick={refreshUpdate} disabled={updateApplying}
-      >{updateFailed
-        ? zh
-          ? '重新加载'
-          : 'Reload page'
-        : updateApplying
-          ? zh
-            ? '正在更新…'
-            : 'Updating…'
-          : zh
-            ? '更新并刷新'
-            : 'Update & refresh'}</button
+      >{copy.updateAction[updateState]}</button
     ><button
       class="update-close"
       onclick={() => {
@@ -372,7 +358,7 @@
         updateFailed = false;
         if (updateTimer) clearTimeout(updateTimer);
       }}
-      aria-label={zh ? '关闭' : 'Dismiss'}><X size={17} /></button
+      aria-label={copy.dismiss}><X size={17} /></button
     >
   </div>{/if}
 
@@ -383,7 +369,7 @@
   onclick={(event) => {
     if (event.target === palette) closePalette();
   }}
-  aria-label={zh ? '搜索工具' : 'Search tools'}
+  aria-label={copy.commandDialog}
 >
   <div class="command-box">
     <div class="command-search">
@@ -392,13 +378,11 @@
         bind:value={query}
         oninput={() => (active = 0)}
         onkeydown={paletteKey}
-        placeholder={zh
-          ? '搜索开发者工具，支持 tag:hash...'
-          : 'Search developer tools; try tag:hash...'}
-        aria-label={zh ? '搜索工具' : 'Search tools'}
-      /><button onclick={closePalette} aria-label={zh ? '关闭' : 'Close'}><X size={19} /></button>
+        placeholder={copy.searchPlaceholder}
+        aria-label={copy.searchTools}
+      /><button onclick={closePalette} aria-label={copy.close}><X size={19} /></button>
     </div>
-    <div class="command-results" role="listbox" aria-label={zh ? '搜索结果' : 'Search results'}>
+    <div class="command-results" role="listbox" aria-label={copy.searchResults}>
       {#each matches as item, i (item.id)}<a
           role="option"
           aria-selected={i === active}
@@ -411,12 +395,11 @@
             ><strong>{item.name[locale]}</strong><small>{item.description[locale]}</small></span
           ><ArrowUpRight size={15} /></a
         >{:else}<p class="command-empty">
-          {zh ? '没有匹配的工具，试试其他关键词。' : 'No matching tools. Try another keyword.'}
+          {copy.noMatchingTools}
         </p>{/each}
     </div>
     <div class="command-hint">
-      <span>↑ ↓ {zh ? '选择' : 'navigate'} · Enter {zh ? '打开' : 'open'}</span><span
-        >Esc {zh ? '关闭' : 'close'}</span
+      <span>↑ ↓ {copy.navigate} · Enter {copy.open}</span><span>Esc {copy.close}</span
       >
     </div>
   </div>

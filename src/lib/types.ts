@@ -60,6 +60,15 @@ export interface ToolField {
   max?: number;
   step?: string;
   hint?: Localized;
+  /** Render this field only when every controlling input has an allowed value. */
+  visibleWhen?: Record<string, string | string[]>;
+}
+
+export interface ToolModeUi {
+  sourceLabel: Localized;
+  targetLabel: Localized;
+  example?: string;
+  reverse?: string;
 }
 export interface ToolResult {
   text: string;

@@ -9,11 +9,11 @@
   import { tools, toolUrl, categories } from '$lib/catalog';
   import { searchTools } from '$lib/search';
   import { tagLabel } from '$lib/tags';
-  import { localeFromPath, otherLocale } from '$lib/i18n';
+  import { homeCopy, localeFromPath, otherLocale } from '$lib/i18n';
   import { preferences, toggleFavorite } from '$lib/preferences.svelte';
   import type { Category, Locale } from '$lib/types';
   const locale: Locale = $derived(localeFromPath(page.url.pathname));
-  const zh = $derived(locale === 'zh-CN');
+  const copy = $derived(homeCopy[locale]);
   let isApplePlatform = $state(false);
   const shortcutLabel = $derived(isApplePlatform ? '⌘ K' : 'Ctrl K');
   let query = $state('');
@@ -30,13 +30,9 @@
   ];
   const label = (filter: Category | 'all' | 'favorites') =>
     filter === 'all'
-      ? zh
-        ? '全部工具'
-        : 'All tools'
+      ? copy.allTools
       : filter === 'favorites'
-        ? zh
-          ? '已收藏'
-          : 'Favorites'
+        ? copy.favorites
         : categories[filter][locale];
   onMount(() => {
     isApplePlatform =
@@ -46,12 +42,8 @@
 </script>
 
 <Seo
-  title={zh
-    ? '免费在线开发者工具：编码、生成与转换'
-    : 'Free online developer tools for encoding, generating and converting'}
-  description={zh
-    ? '搜索免费的开发者工具：JSON、Base64、密码、正则、Cron、二维码等。纯静态网站，数据在浏览器本地处理，并支持离线使用。'
-    : 'Search free developer tools including JSON, Base64, passwords, regex, Cron and QR codes. Private browser-side processing and offline support.'}
+  title={copy.title}
+  description={copy.description}
   {locale}
   path={`/${locale}/`}
   alternatePath={`/${otherLocale(locale)}/`}
@@ -60,59 +52,51 @@
 <section class="hero">
   <div class="hero-copy">
     <p class="eyebrow">
-      <span class="pulse"></span>{zh
-        ? '为开发者准备的轻量工具箱'
-        : 'A little toolkit for big ideas'}
+      <span class="pulse"></span>{copy.eyebrow}
     </p>
     <h1>
-      {zh ? '开发日常，' : 'The small tools'}<br /><span
-        >{zh ? '从这里开始。' : 'that make a difference.'}</span
-      >
+      {copy.heroStart}<br /><span>{copy.heroEnd}</span>
     </h1>
     <p>
-      {zh
-        ? '用得上的工具，集中在这里。快速查找、即开即用，所有数据都在你的浏览器中完成处理。'
-        : 'Useful utilities in one place. Fast, thoughtfully made, and processed entirely in your browser.'}
+      {copy.heroDescription}
     </p>
     <div class="hero-pills">
-      <span><ShieldCheck size={15} />{zh ? '隐私优先' : 'Private by default'}</span><span
-        ><Wifi size={15} />{zh ? '离线可用' : 'Works offline'}</span
-      ><span><Keyboard size={15} />{shortcutLabel} {zh ? '快捷搜索' : 'quick search'}</span>
+      <span><ShieldCheck size={15} />{copy.privateByDefault}</span><span
+        ><Wifi size={15} />{copy.worksOffline}</span
+      ><span><Keyboard size={15} />{shortcutLabel} {copy.quickSearch}</span>
     </div>
   </div>
   <div class="hero-decoration" aria-hidden="true">
     <div class="window-top"><span></span><span></span><span></span></div>
     <div class="window-line"><span>const</span> tools = <b>"better work"</b>;</div>
     <div class="window-line muted-code">
-      // {zh ? '为灵感腾出空间' : 'save time for the good stuff'}
+      // {copy.codeComment}
     </div>
     <div class="window-line">tools.<b>create</b>(); <span class="cursor">▌</span></div>
-    <div class="window-output">✓ {zh ? '准备就绪' : 'ready when you are'}</div>
+    <div class="window-output">✓ {copy.ready}</div>
   </div>
 </section>
-<section class="directory" aria-label={zh ? '全部工具' : 'Tool directory'}>
+<section class="directory" aria-label={copy.directoryLabel}>
   <div class="directory-heading">
     <div>
-      <p class="eyebrow">EXPLORE / {zh ? '探索工具' : 'EXPLORE THE TOOLS'}</p>
-      <h2>{zh ? '探索工具' : 'Explore the tools'}</h2>
+      <p class="eyebrow">EXPLORE / {copy.exploreEyebrow}</p>
+      <h2>{copy.exploreHeading}</h2>
     </div>
-    <p>{zh ? '找到需要的，直接开始。' : 'Find what you need and get going.'}</p>
+    <p>{copy.exploreDescription}</p>
   </div>
   <div class="search-field">
     <Search size={22} /><input
       type="search"
       bind:value={query}
-      placeholder={zh ? '搜索工具，例如 MD5 tag:hash' : 'Search tools, e.g. MD5 tag:hash'}
-      aria-label={zh ? '搜索所有工具' : 'Search all tools'}
+      placeholder={copy.searchPlaceholder}
+      aria-label={copy.searchLabel}
       autocomplete="off"
     />
   </div>
   <p class="search-help">
-    {zh
-      ? '支持 tag:hash 精确筛选、-tag:hash 排除；可组合多个标签。'
-      : 'Use tag:hash to filter, -tag:hash to exclude, and combine tags.'}
+    {copy.searchHelp}
   </p>
-  <div class="filter-row" aria-label={zh ? '工具分类' : 'Tool categories'}>
+  <div class="filter-row" aria-label={copy.categoriesLabel}>
     {#each filters as filter}<button
         class:current={category === filter}
         aria-pressed={category === filter}
@@ -140,10 +124,8 @@
             <h3>{tool.name[locale]}</h3>
             <p>{tool.description[locale]}</p>
             <span class="card-bottom">
-              <span class="card-open"
-                >{zh ? '打开工具' : 'Open tool'} <ChevronsRight size={15} /></span
-              >
-              <span class="card-tags" aria-label={zh ? '工具标签' : 'Tool tags'}>
+              <span class="card-open">{copy.openTool} <ChevronsRight size={15} /></span>
+              <span class="card-tags" aria-label={copy.tagsLabel}>
                 {#each tool.tags.slice(0, 3) as tag (tag)}<span class="card-tag"
                     >#{tagLabel(tag, locale)}</span
                   >{/each}
@@ -170,12 +152,8 @@
             class="favorite"
             class:selected={preferences.favorites.includes(tool.id)}
             aria-label={preferences.favorites.includes(tool.id)
-              ? zh
-                ? '取消收藏'
-                : 'Remove favorite'
-              : zh
-                ? '收藏工具'
-                : 'Add favorite'}
+              ? copy.removeFavorite
+              : copy.addFavorite}
             aria-pressed={preferences.favorites.includes(tool.id)}
             onclick={() => toggleFavorite(tool.id)}
             ><Heart
@@ -186,17 +164,13 @@
         </article>{/each}
     </div>{:else}<div class="no-results" transition:fade={{ duration: 140 }}>
       <Search size={32} />
-      <h3>{zh ? '暂时没有匹配的工具' : 'No tools found'}</h3>
-      <p>
-        {zh
-          ? '试试其他关键词，或查看全部分类。'
-          : 'Try a different keyword or browse all categories.'}
-      </p>
+      <h3>{copy.noResultsHeading}</h3>
+      <p>{copy.noResultsDescription}</p>
       <button
         onclick={() => {
           query = '';
           category = 'all';
-        }}>{zh ? '查看全部工具' : 'Show all tools'}</button
+        }}>{copy.showAll}</button
       >
     </div>{/if}
 </section>

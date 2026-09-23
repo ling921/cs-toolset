@@ -1,7 +1,7 @@
 import type { Locale, ToolId, ToolInput, ToolResult } from '../types';
-import { toolFields, getDefaults } from './fields';
+import { toolFields, getDefaults, toolModeUi } from './fields';
 import { boundedText, fail, ToolError } from './common';
-export { toolFields, getDefaults };
+export { toolFields, getDefaults, toolModeUi };
 export async function runTool(
   id: ToolId,
   input: ToolInput,

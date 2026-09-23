@@ -58,7 +58,7 @@ For local development, use the default `http://localhost:4173`. For a production
 SITE_URL=https://tools.example.com DEPLOY_CONTEXT=production npm run build
 ```
 
-The GitHub Actions workflow accepts a `site_url` input when run manually. It otherwise reads the repository Actions variable `SITE_URL`, falling back to `https://example.com`. Configure that variable before using the workflow for a public production build.
+The Azure deployment workflows set this value explicitly for each environment: `master` builds with `https://tools.csors.com` and `DEPLOY_CONTEXT=production`; `develop` builds with `https://test.tools.csors.com` and `DEPLOY_CONTEXT=preview`. This keeps generated canonical URLs, Open Graph metadata, sitemaps, and robots directives aligned with the deployed site.
 
 ## Routing, SEO, and PWA
 

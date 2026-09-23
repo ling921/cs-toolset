@@ -1,4 +1,4 @@
-import type { Localized, ToolField, ToolId, ToolInput } from '../types';
+import type { Localized, ToolField, ToolId, ToolInput, ToolModeUi } from '../types';
 
 const l = (en: string, zh: string): Localized => ({ en, 'zh-CN': zh });
 const field = (
@@ -43,6 +43,10 @@ const direction = () =>
     ['decode', 'Decode', '解码']
   ]);
 
+const when = (visibleWhen: NonNullable<ToolField['visibleWhen']>) => ({
+  visibleWhen
+});
+
 export const toolFields: Record<ToolId, ToolField[]> = {
   string: [
     length(),
@@ -66,7 +70,10 @@ export const toolFields: Record<ToolId, ToolField[]> = {
     field('max', 'Maximum', '最大值', 'number', '100', { step: 'any' }),
     check('includeMin', 'Include minimum', '包含最小值'),
     check('includeMax', 'Include maximum', '包含最大值'),
-    num('precision', 'Decimal places (decimal mode)', '小数位数（小数模式）', '2', 0, 10),
+    {
+      ...num('precision', 'Decimal places', '小数位数', '2', 0, 10),
+      ...when({ mode: 'decimal' })
+    },
     count()
   ],
   uuid: [
@@ -91,20 +98,23 @@ export const toolFields: Record<ToolId, ToolField[]> = {
       ['ulid', 'ULID', 'ULID'],
       ['nanoid', 'NanoID', 'NanoID']
     ]),
-    length('21', 256),
-    field(
-      'alphabet',
-      'NanoID alphabet',
-      'NanoID 字母表',
-      'text',
-      '_-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      {
-        hint: l(
-          'Used only for NanoID; ULIDs always contain 26 characters.',
-          '仅用于 NanoID；ULID 固定为 26 个字符。'
-        )
-      }
-    ),
+    { ...length('21', 256), ...when({ mode: 'nanoid' }) },
+    {
+      ...field(
+        'alphabet',
+        'NanoID alphabet',
+        'NanoID 字母表',
+        'text',
+        '_-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        {
+          hint: l(
+            'Used only for NanoID; ULIDs always contain 26 characters.',
+            '仅用于 NanoID；ULID 固定为 26 个字符。'
+          )
+        }
+      ),
+      ...when({ mode: 'nanoid' })
+    },
     count()
   ],
   lorem: [
@@ -123,18 +133,21 @@ export const toolFields: Record<ToolId, ToolField[]> = {
       ['sort', 'Sort keys recursively', '递归排序键'],
       ['validate', 'Validate', '校验']
     ]),
-    num('indent', 'Indent spaces', '缩进空格', '2', 1, 8)
+    {
+      ...num('indent', 'Indent spaces', '缩进空格', '2', 1, 8),
+      ...when({ mode: ['pretty', 'sort'] })
+    }
   ],
   yaml: [
-    input('name: CS Toolset\nfeatures:\n  - private\n  - offline'),
     select('mode', 'Direction', '转换方向', 'toJson', [
       ['toJson', 'YAML → JSON', 'YAML → JSON'],
       ['toYaml', 'JSON → YAML', 'JSON → YAML']
-    ])
+    ]),
+    input('name: Ada\nage: 36')
   ],
   base64: [
-    input('Hello, 世界 👋'),
     direction(),
+    input('Hello, 世界 👋'),
     check(
       'urlSafe',
       'Base64URL alphabet (omit padding on encode)',
@@ -143,14 +156,14 @@ export const toolFields: Record<ToolId, ToolField[]> = {
     )
   ],
   url: [
-    input('Hello 世界 & tools'),
     direction(),
+    input('Hello 世界 & tools'),
     select('scope', 'Encoding scope', '编码范围', 'component', [
       ['component', 'URI component', 'URI 组件'],
       ['uri', 'Complete URI', '完整 URI']
     ])
   ],
-  html: [input('<div title="Hello">Tom & Jerry</div>'), direction()],
+  html: [direction(), input('<div title="Hello">Tom & Jerry</div>')],
   hash: [
     input('Hello, world!'),
     select('mode', 'Operation', '操作', 'hash', [
@@ -165,61 +178,76 @@ export const toolFields: Record<ToolId, ToolField[]> = {
       ['sha384', 'SHA-384', 'SHA-384'],
       ['sha512', 'SHA-512', 'SHA-512']
     ]),
-    field('key', 'HMAC secret key (UTF-8)', 'HMAC 密钥（UTF-8）', 'password', ''),
-    field('salt', 'PBKDF2 salt (UTF-8)', 'PBKDF2 盐（UTF-8）', 'text', 'change-this-salt'),
-    num('iterations', 'PBKDF2 iterations', 'PBKDF2 迭代次数', '600000', 1, 2000000),
-    num('bytes', 'PBKDF2 output bytes', 'PBKDF2 输出字节数', '32', 1, 256),
+    {
+      ...field('key', 'HMAC secret key (UTF-8)', 'HMAC 密钥（UTF-8）', 'password', ''),
+      ...when({ mode: 'hmac' })
+    },
+    {
+      ...field('salt', 'PBKDF2 salt (UTF-8)', 'PBKDF2 盐（UTF-8）', 'text', 'change-this-salt'),
+      ...when({ mode: 'pbkdf2' })
+    },
+    {
+      ...num('iterations', 'PBKDF2 iterations', 'PBKDF2 迭代次数', '600000', 1, 2000000),
+      ...when({ mode: 'pbkdf2' })
+    },
+    {
+      ...num('bytes', 'PBKDF2 output bytes', 'PBKDF2 输出字节数', '32', 1, 256),
+      ...when({ mode: 'pbkdf2' })
+    },
     encoding()
   ],
   timestamp: [
-    field(
-      'input',
-      'Timestamp or date (leave blank for now)',
-      '时间戳或日期（留空使用当前时间）',
-      'text',
-      ''
-    ),
     select('mode', 'Input type', '输入类型', 'seconds', [
       ['seconds', 'Unix seconds', 'Unix 秒'],
       ['milliseconds', 'Unix milliseconds', 'Unix 毫秒'],
       ['date', 'Date / ISO 8601', '日期 / ISO 8601']
     ]),
-    select('zone', 'Interpret dates without an offset as', '无偏移日期的解析时区', 'utc', [
-      ['utc', 'UTC', 'UTC'],
-      ['local', 'Browser local time', '浏览器本地时间']
-    ])
+    field('input', 'Timestamp or date', '时间戳或日期', 'text', '1704067200'),
+    {
+      ...select('zone', 'Interpret dates without an offset as', '无偏移日期的解析时区', 'utc', [
+        ['utc', 'UTC', 'UTC'],
+        ['local', 'Browser local time', '浏览器本地时间']
+      ]),
+      ...when({ mode: 'date' })
+    }
   ],
   jwt: [
     select('mode', 'Operation', '操作', 'decode', [
       ['decode', 'Decode / verify', '解码 / 验签'],
       ['encode', 'Sign / encode', '签发 / 编码']
     ]),
-    input(
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkxpbmciLCJpYXQiOjE1MTYyMzkwMjJ9.signature'
-    ),
-    field(
-      'header',
-      'Extra header JSON (encode only)',
-      '额外 Header JSON（仅编码）',
-      'textarea',
-      '{"typ":"JWT"}'
-    ),
-    field(
-      'payload',
-      'Payload JSON (encode only)',
-      'Payload JSON（仅编码）',
-      'textarea',
-      '{"sub":"123","name":"Ling"}'
-    ),
-    select('algorithm', 'Signing algorithm (encode only)', '签名算法（仅编码）', 'HS256', [
-      ['HS256', 'HS256', 'HS256'],
-      ['HS384', 'HS384', 'HS384'],
-      ['HS512', 'HS512', 'HS512']
-    ]),
+    {
+      ...input(
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkxpbmciLCJpYXQiOjE1MTYyMzkwMjJ9.signature'
+      ),
+      ...when({ mode: 'decode' })
+    },
+    {
+      ...field('header', 'Extra header JSON', '额外 Header JSON', 'textarea', '{"typ":"JWT"}'),
+      ...when({ mode: 'encode' })
+    },
+    {
+      ...field(
+        'payload',
+        'Payload JSON',
+        'Payload JSON',
+        'textarea',
+        '{"sub":"123","name":"Ling"}'
+      ),
+      ...when({ mode: 'encode' })
+    },
+    {
+      ...select('algorithm', 'Signing algorithm', '签名算法', 'HS256', [
+        ['HS256', 'HS256', 'HS256'],
+        ['HS384', 'HS384', 'HS384'],
+        ['HS512', 'HS512', 'HS512']
+      ]),
+      ...when({ mode: 'encode' })
+    },
     field(
       'secret',
-      'HMAC secret (at least 32/48/64 UTF-8 bytes)',
-      'HMAC 密钥（至少 32/48/64 UTF-8 字节）',
+      'HMAC secret (optional for verification)',
+      'HMAC 密钥（验签时可选）',
       'password',
       ''
     )
@@ -327,7 +355,10 @@ export const toolFields: Record<ToolId, ToolField[]> = {
       ['encode', 'Image → Base64', '图片 → Base64'],
       ['decode', 'Base64 → image', 'Base64 → 图片']
     ]),
-    input('data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
+    {
+      ...input('data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='),
+      ...when({ mode: 'decode' })
+    }
   ],
   radix: [
     input('FF'),
@@ -339,22 +370,37 @@ export const toolFields: Record<ToolId, ToolField[]> = {
       ['generate', 'Generate test numbers', '生成测试号码'],
       ['validate', 'Validate a number', '校验号码']
     ]),
-    field('input', 'Number to validate', '待校验号码', 'text', '11010519491231002X'),
-    field('region', 'Six-digit region code', '六位地区代码', 'text', '110105'),
-    field('birth', 'Birth date (YYYY-MM-DD)', '出生日期（YYYY-MM-DD）', 'text', '1990-01-01'),
-    select('sex', 'Sequence parity', '顺序码性别', 'random', [
-      ['random', 'Random', '随机'],
-      ['male', 'Odd / male', '奇数 / 男'],
-      ['female', 'Even / female', '偶数 / 女']
-    ]),
-    num('count', 'Quantity', '数量', '1', 1, 100)
+    {
+      ...field('input', 'Number to validate', '待校验号码', 'text', '11010519491231002X'),
+      ...when({ mode: 'validate' })
+    },
+    {
+      ...field('region', 'Six-digit region code', '六位地区代码', 'text', '110105'),
+      ...when({ mode: 'generate' })
+    },
+    {
+      ...field('birth', 'Birth date (YYYY-MM-DD)', '出生日期（YYYY-MM-DD）', 'text', '1990-01-01'),
+      ...when({ mode: 'generate' })
+    },
+    {
+      ...select('sex', 'Sequence parity', '顺序码性别', 'random', [
+        ['random', 'Random', '随机'],
+        ['male', 'Odd / male', '奇数 / 男'],
+        ['female', 'Even / female', '偶数 / 女']
+      ]),
+      ...when({ mode: 'generate' })
+    },
+    {
+      ...num('count', 'Quantity', '数量', '1', 1, 100),
+      ...when({ mode: 'generate' })
+    }
   ],
   csv: [
-    input('name,age\nAda,36'),
     select('mode', 'Direction', '转换方向', 'toJson', [
       ['toJson', 'CSV → JSON', 'CSV → JSON'],
       ['toCsv', 'JSON → CSV', 'JSON → CSV']
-    ])
+    ]),
+    input('name,age\nAda,36')
   ],
   unicode: [input('Hello, 世界 👋')],
   urlInspect: [input('https://example.com/path?q=hello&q=world#top')],
@@ -378,9 +424,12 @@ export const toolFields: Record<ToolId, ToolField[]> = {
     ]),
     check('unicode', 'Keep non-Latin letters', '保留非拉丁文字')
   ],
-  base32: [input('foo'), direction(), check('padding', 'Include padding', '包含填充')],
+  base32: [direction(), input('foo'), check('padding', 'Include padding', '包含填充')],
   httpStatus: [
-    field('input', 'HTTP status code', 'HTTP 状态码', 'number', '404', { min: 100, max: 599 })
+    field('input', 'HTTP status code', 'HTTP 状态码', 'number', '404', {
+      min: 100,
+      max: 599
+    })
   ],
   xml: [
     input('<root><item>Hi</item></root>'),
@@ -389,6 +438,176 @@ export const toolFields: Record<ToolId, ToolField[]> = {
       ['validate', 'Validate XML', '校验 XML']
     ])
   ]
+};
+
+const presentation = (
+  sourceEn: string,
+  sourceZh: string,
+  targetEn: string,
+  targetZh: string,
+  example: string | undefined,
+  reverse?: string
+): ToolModeUi => ({
+  sourceLabel: l(sourceEn, sourceZh),
+  targetLabel: l(targetEn, targetZh),
+  example,
+  reverse
+});
+
+/** Direction-specific labels and safe examples. Input is never overwritten once the user edits it. */
+export const toolModeUi: Partial<Record<ToolId, Record<string, ToolModeUi>>> = {
+  yaml: {
+    toJson: presentation(
+      'YAML input',
+      'YAML 输入',
+      'JSON output',
+      'JSON 输出',
+      'name: Ada\nage: 36',
+      'toYaml'
+    ),
+    toYaml: presentation(
+      'JSON input',
+      'JSON 输入',
+      'YAML output',
+      'YAML 输出',
+      '{"name":"Ada","age":36}',
+      'toJson'
+    )
+  },
+  csv: {
+    toJson: presentation(
+      'CSV input',
+      'CSV 输入',
+      'JSON output',
+      'JSON 输出',
+      'name,age\nAda,36',
+      'toCsv'
+    ),
+    toCsv: presentation(
+      'JSON input',
+      'JSON 输入',
+      'CSV output',
+      'CSV 输出',
+      '[{"name":"Ada","age":36}]',
+      'toJson'
+    )
+  },
+  base64: {
+    encode: presentation(
+      'Plain text',
+      '原始文本',
+      'Base64 output',
+      'Base64 输出',
+      'Hello, 世界 👋',
+      'decode'
+    ),
+    decode: presentation(
+      'Base64 input',
+      'Base64 输入',
+      'Plain-text output',
+      '原始文本输出',
+      'SGVsbG8sIOS4lueVjCDwn5GL',
+      'encode'
+    )
+  },
+  base32: {
+    encode: presentation('Plain text', '原始文本', 'Base32 output', 'Base32 输出', 'foo', 'decode'),
+    decode: presentation(
+      'Base32 input',
+      'Base32 输入',
+      'Plain-text output',
+      '原始文本输出',
+      'MZXW6',
+      'encode'
+    )
+  },
+  url: {
+    encode: presentation(
+      'Text or URL input',
+      '文本或 URL 输入',
+      'Percent-encoded output',
+      '百分号编码输出',
+      'Hello 世界 & tools',
+      'decode'
+    ),
+    decode: presentation(
+      'Percent-encoded input',
+      '百分号编码输入',
+      'Decoded text',
+      '解码文本',
+      'Hello%20%E4%B8%96%E7%95%8C%20%26%20tools',
+      'encode'
+    )
+  },
+  html: {
+    encode: presentation(
+      'HTML or text input',
+      'HTML 或文本输入',
+      'Escaped HTML output',
+      'HTML 转义输出',
+      '<div title="Hello">Tom & Jerry</div>',
+      'decode'
+    ),
+    decode: presentation(
+      'HTML entities input',
+      'HTML 实体输入',
+      'Decoded HTML/text',
+      '解码后的 HTML/文本',
+      '&lt;div title=&quot;Hello&quot;&gt;Tom &amp; Jerry&lt;/div&gt;',
+      'encode'
+    )
+  },
+  imageBase64: {
+    encode: presentation(
+      'Image file',
+      '图片文件',
+      'Base64 data URL',
+      'Base64 Data URL',
+      undefined,
+      'decode'
+    ),
+    decode: presentation(
+      'Base64 data URL',
+      'Base64 Data URL',
+      'Image preview',
+      '图片预览',
+      'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+      'encode'
+    )
+  },
+  jwt: {
+    decode: presentation('JWT', 'JWT', 'Decoded claims', '解码后的声明', undefined),
+    encode: presentation(
+      'Header and payload JSON',
+      'Header 与载荷 JSON',
+      'Signed JWT',
+      '签名 JWT',
+      undefined
+    )
+  },
+  timestamp: {
+    seconds: presentation(
+      'Unix seconds',
+      'Unix 秒',
+      'Date representations',
+      '日期表示',
+      '1704067200'
+    ),
+    milliseconds: presentation(
+      'Unix milliseconds',
+      'Unix 毫秒',
+      'Date representations',
+      '日期表示',
+      '1704067200000'
+    ),
+    date: presentation(
+      'Date / ISO 8601',
+      '日期 / ISO 8601',
+      'Unix timestamps',
+      'Unix 时间戳',
+      '2024-01-01T00:00:00Z'
+    )
+  }
 };
 
 export function getDefaults(id: ToolId): ToolInput {

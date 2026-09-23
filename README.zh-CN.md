@@ -58,7 +58,7 @@ npm run test:e2e          # 桌面与移动端浏览器测试
 SITE_URL=https://tools.example.com DEPLOY_CONTEXT=production npm run build
 ```
 
-GitHub Actions 支持在手动运行时填写 `site_url` 参数；否则读取仓库的 Actions 变量 `SITE_URL`，未设置时使用 `https://example.com`。用于公开生产构建前，请配置该变量。
+Azure 部署工作流会为各环境显式设置该值：`master` 使用 `https://tools.csors.com` 与 `DEPLOY_CONTEXT=production` 构建，`develop` 使用 `https://test.tools.csors.com` 与 `DEPLOY_CONTEXT=preview` 构建。这样生成的 canonical URL、Open Graph 元数据、sitemap 和 robots 指令会始终与实际部署站点一致。
 
 ## 路由、SEO 与 PWA
 
