@@ -46,6 +46,8 @@
   let paletteInput: HTMLInputElement;
   let query = $state('');
   let active = $state(0);
+  let siteHeaderVisible = $state(true);
+  let siteFooterVisible = $state(false);
   let updateWaiting = $state(false);
   let updateApplying = $state(false);
   let updateFailed = $state(false);
@@ -53,6 +55,8 @@
   let isApplePlatform = $state(false);
   let languageMenuOpen = $state(false);
   let languageMenu: HTMLElement;
+  let siteHeader: HTMLElement;
+  let siteFooter: HTMLElement;
   let previousOverflow = '';
   let worker: ServiceWorkerRegistration | undefined;
   let updateTimer: ReturnType<typeof setTimeout> | undefined;
@@ -62,6 +66,21 @@
   const currentPath = $derived(page.url.pathname.replace(/^\/[^/]+\//, '').replace(/\/$/, ''));
   const shortcutLabel = $derived(isApplePlatform ? '⌘ K' : 'Ctrl K');
   const updateState = $derived(updateFailed ? 'failed' : updateApplying ? 'applying' : 'ready');
+  const floatingThemeVisible = $derived(!siteHeaderVisible && !siteFooterVisible);
+  const footerThemeVisible = $derived(!siteHeaderVisible && siteFooterVisible);
+
+  $effect(() => {
+    const selectedIndex = active;
+    query;
+    matches.length;
+    if (!palette?.open || !matches.length) return;
+    requestAnimationFrame(() => {
+      if (!palette?.open || active !== selectedIndex) return;
+      palette
+        .querySelector<HTMLElement>('.command-results [aria-selected="true"]')
+        ?.scrollIntoView({ block: 'nearest' });
+    });
+  });
 
   function openPalette() {
     if (palette?.open) return;
@@ -70,7 +89,12 @@
     previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
     palette?.showModal();
-    setTimeout(() => paletteInput?.focus(), 0);
+    setTimeout(() => {
+      paletteInput?.focus();
+      palette
+        ?.querySelector<HTMLElement>('.command-results [aria-selected="true"]')
+        ?.scrollIntoView({ block: 'nearest' });
+    }, 0);
   }
   function closePalette() {
     palette?.close();
@@ -189,6 +213,14 @@
     window.addEventListener('offline', connection);
     const media = matchMedia('(prefers-color-scheme: dark)');
     media.addEventListener('change', scheme);
+    const pageChromeObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === siteHeader) siteHeaderVisible = entry.isIntersecting;
+        if (entry.target === siteFooter) siteFooterVisible = entry.isIntersecting;
+      }
+    });
+    pageChromeObserver.observe(siteHeader);
+    pageChromeObserver.observe(siteFooter);
     let previousController = navigator.serviceWorker?.controller;
     const controller = () => {
       const changed = navigator.serviceWorker.controller !== previousController;
@@ -224,6 +256,7 @@
       window.removeEventListener('online', connection);
       window.removeEventListener('offline', connection);
       media.removeEventListener('change', scheme);
+      pageChromeObserver.disconnect();
       unlockPaletteScroll();
       cleanupWorker?.();
     };
@@ -232,7 +265,7 @@
 </script>
 
 <div class="site-shell">
-  <header class="site-header">
+  <header bind:this={siteHeader} class="site-header">
     <div class="header-inner">
       <a class="brand" href={`/${locale}/`} aria-label={copy.brandHome}
         ><img class="brand-mark" src="/cs-toolset-mark.svg" alt="" /><span
@@ -324,7 +357,7 @@
     </div>
   </header>
   <main id="main" class="page-container">{@render children()}</main>
-  <footer class="site-footer">
+  <footer bind:this={siteFooter} class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
         <img class="brand-mark small" src="/cs-toolset-mark.svg" alt="" />
@@ -339,9 +372,85 @@
         <a href="/{locale}/privacy/"> {copy.privacy} </a>
         <span class="version">v{siteConfig.version} · {siteConfig.commit}</span>
       </nav>
+      {#if footerThemeVisible}<div
+          class="theme-controls footer-theme-controls"
+          class:theme-light={preferences.theme === 'light'}
+          class:theme-system={preferences.theme === 'system'}
+          class:theme-dark={preferences.theme === 'dark'}
+          role="group"
+          aria-label={copy.theme}
+        >
+          <span class="theme-indicator" aria-hidden="true"></span>
+          <button
+            class:chosen={preferences.theme === 'light'}
+            onclick={() => setTheme('light')}
+            aria-label={copy.lightTheme}
+            title={copy.lightTheme}
+            aria-pressed={preferences.theme === 'light'}
+          >
+            <Sun size={17} />
+          </button>
+          <button
+            class:chosen={preferences.theme === 'system'}
+            onclick={() => setTheme('system')}
+            aria-label={copy.systemTheme}
+            title={copy.systemTheme}
+            aria-pressed={preferences.theme === 'system'}
+          >
+            <Monitor size={17} />
+          </button>
+          <button
+            class:chosen={preferences.theme === 'dark'}
+            onclick={() => setTheme('dark')}
+            aria-label={copy.darkTheme}
+            title={copy.darkTheme}
+            aria-pressed={preferences.theme === 'dark'}
+          >
+            <Moon size={17} />
+          </button>
+        </div>{/if}
     </div>
   </footer>
 </div>
+
+{#if floatingThemeVisible}<div
+    class="theme-controls floating-theme-controls"
+    class:theme-light={preferences.theme === 'light'}
+    class:theme-system={preferences.theme === 'system'}
+    class:theme-dark={preferences.theme === 'dark'}
+    class:raised={offline || updateWaiting}
+    role="group"
+    aria-label={copy.theme}
+  >
+    <span class="theme-indicator" aria-hidden="true"></span>
+    <button
+      class:chosen={preferences.theme === 'light'}
+      onclick={() => setTheme('light')}
+      aria-label={copy.lightTheme}
+      title={copy.lightTheme}
+      aria-pressed={preferences.theme === 'light'}
+    >
+      <Sun size={17} />
+    </button>
+    <button
+      class:chosen={preferences.theme === 'system'}
+      onclick={() => setTheme('system')}
+      aria-label={copy.systemTheme}
+      title={copy.systemTheme}
+      aria-pressed={preferences.theme === 'system'}
+    >
+      <Monitor size={17} />
+    </button>
+    <button
+      class:chosen={preferences.theme === 'dark'}
+      onclick={() => setTheme('dark')}
+      aria-label={copy.darkTheme}
+      title={copy.darkTheme}
+      aria-pressed={preferences.theme === 'dark'}
+    >
+      <Moon size={17} />
+    </button>
+  </div>{/if}
 
 {#if offline}<div class="floating-status" role="status">
     <WifiOff size={17} />{copy.offline}

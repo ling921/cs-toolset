@@ -261,6 +261,32 @@ dialog:focus-visible {
 .theme-controls .chosen {
   color: var(--accent);
 }
+.floating-theme-controls {
+  position: fixed;
+  z-index: 40;
+  right: max(16px, calc((100vw - 1220px) / 2));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 11px;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 12px 32px rgb(15 40 32 / 0.16);
+  backdrop-filter: blur(14px);
+  animation: theme-control-enter 180ms ease-out both;
+  transition: bottom 180ms ease;
+}
+.floating-theme-controls.raised {
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+}
+@keyframes theme-control-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 .page-container {
   flex: 1;
   padding: 48px 0 82px;
@@ -287,6 +313,9 @@ dialog:focus-visible {
 }
 .footer-brand {
   gap: 9px;
+}
+.footer-theme-controls {
+  flex: none;
 }
 .brand-mark.small {
   width: 20px;
@@ -481,6 +510,9 @@ dialog:focus-visible {
     padding: 16px 0;
     display: grid;
     gap: 16px;
+  }
+  .footer-theme-controls {
+    justify-self: start;
   }
   .footer-inner nav {
     gap: 13px;
