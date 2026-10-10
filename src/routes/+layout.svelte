@@ -46,7 +46,8 @@
   let paletteInput: HTMLInputElement;
   let query = $state('');
   let active = $state(0);
-  let floatingThemeVisible = $state(false);
+  let siteHeaderVisible = $state(true);
+  let siteFooterVisible = $state(false);
   let updateWaiting = $state(false);
   let updateApplying = $state(false);
   let updateFailed = $state(false);
@@ -55,6 +56,7 @@
   let languageMenuOpen = $state(false);
   let languageMenu: HTMLElement;
   let siteHeader: HTMLElement;
+  let siteFooter: HTMLElement;
   let previousOverflow = '';
   let worker: ServiceWorkerRegistration | undefined;
   let updateTimer: ReturnType<typeof setTimeout> | undefined;
@@ -64,6 +66,8 @@
   const currentPath = $derived(page.url.pathname.replace(/^\/[^/]+\//, '').replace(/\/$/, ''));
   const shortcutLabel = $derived(isApplePlatform ? '⌘ K' : 'Ctrl K');
   const updateState = $derived(updateFailed ? 'failed' : updateApplying ? 'applying' : 'ready');
+  const floatingThemeVisible = $derived(!siteHeaderVisible && !siteFooterVisible);
+  const footerThemeVisible = $derived(!siteHeaderVisible && siteFooterVisible);
 
   $effect(() => {
     const selectedIndex = active;
@@ -209,10 +213,14 @@
     window.addEventListener('offline', connection);
     const media = matchMedia('(prefers-color-scheme: dark)');
     media.addEventListener('change', scheme);
-    const headerObserver = new IntersectionObserver(([entry]) => {
-      floatingThemeVisible = !entry.isIntersecting;
+    const pageChromeObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === siteHeader) siteHeaderVisible = entry.isIntersecting;
+        if (entry.target === siteFooter) siteFooterVisible = entry.isIntersecting;
+      }
     });
-    headerObserver.observe(siteHeader);
+    pageChromeObserver.observe(siteHeader);
+    pageChromeObserver.observe(siteFooter);
     let previousController = navigator.serviceWorker?.controller;
     const controller = () => {
       const changed = navigator.serviceWorker.controller !== previousController;
@@ -248,7 +256,7 @@
       window.removeEventListener('online', connection);
       window.removeEventListener('offline', connection);
       media.removeEventListener('change', scheme);
-      headerObserver.disconnect();
+      pageChromeObserver.disconnect();
       unlockPaletteScroll();
       cleanupWorker?.();
     };
@@ -349,7 +357,7 @@
     </div>
   </header>
   <main id="main" class="page-container">{@render children()}</main>
-  <footer class="site-footer">
+  <footer bind:this={siteFooter} class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
         <img class="brand-mark small" src="/cs-toolset-mark.svg" alt="" />
@@ -364,6 +372,43 @@
         <a href="/{locale}/privacy/"> {copy.privacy} </a>
         <span class="version">v{siteConfig.version} · {siteConfig.commit}</span>
       </nav>
+      {#if footerThemeVisible}<div
+          class="theme-controls footer-theme-controls"
+          class:theme-light={preferences.theme === 'light'}
+          class:theme-system={preferences.theme === 'system'}
+          class:theme-dark={preferences.theme === 'dark'}
+          role="group"
+          aria-label={copy.theme}
+        >
+          <span class="theme-indicator" aria-hidden="true"></span>
+          <button
+            class:chosen={preferences.theme === 'light'}
+            onclick={() => setTheme('light')}
+            aria-label={copy.lightTheme}
+            title={copy.lightTheme}
+            aria-pressed={preferences.theme === 'light'}
+          >
+            <Sun size={17} />
+          </button>
+          <button
+            class:chosen={preferences.theme === 'system'}
+            onclick={() => setTheme('system')}
+            aria-label={copy.systemTheme}
+            title={copy.systemTheme}
+            aria-pressed={preferences.theme === 'system'}
+          >
+            <Monitor size={17} />
+          </button>
+          <button
+            class:chosen={preferences.theme === 'dark'}
+            onclick={() => setTheme('dark')}
+            aria-label={copy.darkTheme}
+            title={copy.darkTheme}
+            aria-pressed={preferences.theme === 'dark'}
+          >
+            <Moon size={17} />
+          </button>
+        </div>{/if}
     </div>
   </footer>
 </div>

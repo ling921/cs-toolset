@@ -314,6 +314,9 @@ dialog:focus-visible {
 .footer-brand {
   gap: 9px;
 }
+.footer-theme-controls {
+  flex: none;
+}
 .brand-mark.small {
   width: 20px;
   height: 20px;
@@ -507,6 +510,9 @@ dialog:focus-visible {
     padding: 16px 0;
     display: grid;
     gap: 16px;
+  }
+  .footer-theme-controls {
+    justify-self: start;
   }
   .footer-inner nav {
     gap: 13px;
