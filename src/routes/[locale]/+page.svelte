@@ -309,6 +309,9 @@
     font-size: 14px;
   }
   .search-field {
+    position: sticky;
+    top: 12px;
+    z-index: 10;
     height: 64px;
     display: flex;
     align-items: center;
@@ -318,7 +321,9 @@
     background: var(--surface);
     padding: 0 21px;
     color: var(--accent);
-    box-shadow: 0 8px 24px #00000007;
+    box-shadow: 0 12px 32px rgb(15 40 32 / 0.12);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(14px);
   }
   .search-field:focus-within {
     border-color: var(--accent);
